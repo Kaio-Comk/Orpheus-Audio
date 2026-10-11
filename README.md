@@ -1,18 +1,18 @@
 <div align="center">
 
-# 🔊 audiorepair
+# 🔊 Orpheus-Audio
 ### High-Speed, Non-Blocking Async Video Audio Repair for Browsers & Chromecast
 
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-blue.svg?logo=python&logoColor=white)](https://python.org)
 [![AsyncIO](https://img.shields.io/badge/Architecture-100%25%20Non--Blocking%20AsyncIO-purple.svg)](https://docs.python.org/3/library/asyncio.html)
 [![FFmpeg](https://img.shields.io/badge/Engine-FFmpeg%20%7C%20Stream%20Copy-red.svg?logo=ffmpeg&logoColor=white)](https://ffmpeg.org)
-[![Video Quality](https://img.shields.io/badge/Video%20Quality-100%25%20Bit--for--Bit%20Lossless-success.svg)](https://github.com/Kaio-Comk/audiorepair)
+[![Video Quality](https://img.shields.io/badge/Video%20Quality-100%25%20Bit--for--Bit%20Lossless-success.svg)](https://github.com/Kaio-Comk/Orpheus-Audio)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **Make videos play instantly in Chrome, Safari, Chromecast, and Telegram by transcoding *only the audio track*.**  
 *Video stream is copied bit-for-bit with zero compression loss in seconds instead of hours.*
 
-[The Problem](#-why-audiorepair) • [How It Works](#-how-it-works) • [Installation](#-installation) • [Quickstart](#-quickstart) • [Cancellation & Safety](#-cancellation--pipe-safety) • [Contributing](#-contributing)
+[The Problem](#-why-orpheus-audio) • [How It Works](#-how-it-works) • [Installation](#-installation) • [Quickstart](#-quickstart) • [Cancellation & Safety](#-cancellation--pipe-safety) • [Contributing](#-contributing)
 
 </div>
 
@@ -59,7 +59,7 @@ flowchart TD
 ## 📦 Installation
 
 ```bash
-pip install git+https://github.com/Kaio-Comk/audiorepair.git
+pip install git+https://github.com/Kaio-Comk/Orpheus-Audio.git
 ```
 
 > **Requirement:** Requires `ffmpeg` and `ffprobe` installed on your system `PATH` (or explicitly passed as parameters).
@@ -121,5 +121,5 @@ pytest -v
 Distributed under the **MIT License**. See `LICENSE` for details.
 
 <div align="center">
-  <sub>Built with ❤️ by Kaio Lima. If audiorepair saved you encoding time, please give it a ⭐!</sub>
+  <sub>Built with ❤️ by Kaio Lima. If Orpheus-Audio saved you encoding time, please give it a ⭐!</sub>
 </div>
