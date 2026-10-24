@@ -48,7 +48,8 @@ flowchart TD
         Transcode --> AConv["🎵 Audio: Stereo AAC @ 128k"]
     end
     
-    VCopy & AConv --> TempFile["💾 Write to isolated temporary file (.fixed.tmp)"]
+    VCopy --> TempFile
+        AConv --> TempFile["💾 Write to isolated temporary file (.fixed.tmp)"]
     TempFile --> Verify["🧪 Verify output headers with ffprobe"]
     Verify -->|Valid| Final["🎉 Atomic rename to destination (Original untouched)"]
     Verify -->|Corrupted| Clean["🗑️ Auto-delete temp file & raise AudioRepairError"]
