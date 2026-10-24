@@ -18,6 +18,14 @@
 
 ---
 
+> [!IMPORTANT]
+> **Precision on Lossless Video vs Perceptual Audio:**
+> * **Video (Picture): 100% Bit-for-Bit Lossless.** The video track is copied directly without recompression (`-c:v copy`), preserving full resolution, color grading, HDR metadata, and bitrates.
+> * **Audio: Perceptual High-Fidelity AAC.** Unsupported multichannel audio (AC3, DTS, TrueHD) is transcoded to stereo AAC (128kbps default, configurable up to 320kbps) for universal web browser, smart TV, and mobile device playback.
+> * **Zero Data Loss Guarantee:** Transcoding writes to an isolated `.tmp_enc` file. If FFmpeg fails, receives invalid data, or the operation is cancelled mid-flight, the temporary file is deleted immediately and the original input video remains 100% intact.
+
+---
+
 ## ⚡ The Problem: Silent Video Playback
 
 Modern web browsers, TV sticks (Chromecast, Fire TV), and web players (Telegram Web, Discord, Plex, Jellyfin) cannot decode proprietary multichannel audio codecs due to licensing restrictions. The video plays smoothly, but the sound is completely silent.
@@ -43,13 +51,14 @@ flowchart TD
     Decision -->|AAC / MP3 / Opus| Skip["✅ No repair needed (Returns False)"]
     Decision -->|AC-3 / DTS / Incompatible| Transcode["⚙️ Async FFmpeg Worker"]
     
-    subgraph Engine ["Lossless Remuxing Engine"]
+    subgraph Engine ["Remuxing & Transcode Engine"]
         Transcode --> VCopy["📹 Video: Stream Copy (-c:v copy, 0% Loss)"]
         Transcode --> AConv["🎵 Audio: Stereo AAC @ 128k"]
     end
     
+    TempFile["💾 Write to isolated temporary file (.fixed.tmp)"]
     VCopy --> TempFile
-        AConv --> TempFile["💾 Write to isolated temporary file (.fixed.tmp)"]
+    AConv --> TempFile
     TempFile --> Verify["🧪 Verify output headers with ffprobe"]
     Verify -->|Valid| Final["🎉 Atomic rename to destination (Original untouched)"]
     Verify -->|Corrupted| Clean["🗑️ Auto-delete temp file & raise AudioRepairError"]
