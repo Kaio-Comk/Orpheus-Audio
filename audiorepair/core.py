@@ -11,11 +11,13 @@ encode (it once cost us a Telegram connection in the middle of a 700 MB upload).
 from __future__ import annotations
 
 import asyncio
+import glob
 import logging
 import os
 import shutil
 import subprocess
 import time
+import uuid
 from pathlib import Path
 from typing import Callable, Optional
 
@@ -29,6 +31,28 @@ ProgressCb = Callable[[int, int], None]     # (percent 0-99, estimated seconds l
 
 class AudioRepairError(RuntimeError):
     """The repair failed; the source file is untouched and no temp file is left."""
+
+
+def _arg(path: Path) -> str:
+    """Absolute path for the command line: a relative name such as `-y.mp4` would be read by
+    ffmpeg/ffprobe as an option instead of a file."""
+    return str(Path(path).absolute())
+
+
+STALE_TEMP_SECONDS = 24 * 3600
+
+
+def _remove_stale_temps(dst: Path) -> None:
+    """Temp files left by a process that was killed hard (power loss, task kill) are never promoted.
+    The old single name was overwritten by the next run; with one name per call they would pile up,
+    so leftovers of this `dst` older than a day are removed (a repair in progress is never that old)."""
+    limit = time.time() - STALE_TEMP_SECONDS
+    for old in dst.parent.glob(f"{glob.escape(dst.name)}.*tmp_enc"):
+        try:
+            if old.stat().st_mtime < limit:
+                old.unlink()
+        except OSError:
+            pass            # in use or already gone: the next run tries again
 
 
 def _bin(name: str, override: Optional[str]) -> str:
@@ -56,7 +80,7 @@ async def probe_codec(path: Path, stream: str = "a:0", *, ffprobe: Optional[str]
     track 0 and AAC on track 1 passing as playable and playing silent."""
     out = await _run_capture(_bin("ffprobe", ffprobe), "-v", "error", "-select_streams", stream,
                              "-show_entries", "stream=codec_name",
-                             "-of", "default=noprint_wrappers=1:nokey=1", str(path))
+                             "-of", "default=noprint_wrappers=1:nokey=1", _arg(path))
     lines = out.strip().splitlines()
     return lines[0].strip().lower() if lines else ""
 
@@ -64,7 +88,7 @@ async def probe_codec(path: Path, stream: str = "a:0", *, ffprobe: Optional[str]
 async def probe_duration(path: Path, *, ffprobe: Optional[str] = None) -> float:
     out = await _run_capture(_bin("ffprobe", ffprobe), "-v", "error", "-show_entries",
                              "format=duration", "-of", "default=noprint_wrappers=1:nokey=1",
-                             str(path))
+                             _arg(path))
     try:
         return float(out.strip() or 0)
     except ValueError:
@@ -124,12 +148,14 @@ async def repair_audio(src: Path, dst: Optional[Path] = None, *,
     dst = Path(dst) if dst else src.with_name(f"{src.stem}.fixed.mp4")
     if dst.resolve() == src.resolve():
         raise AudioRepairError("dst must differ from src")
-    tmp = dst.with_name(dst.name + ".tmp_enc")
-    tmp.unlink(missing_ok=True)
+    # One temp file per call: two repairs of the same file at once (a duplicated request) used to
+    # fight over a single `<dst>.tmp_enc` (PermissionError on Windows, a clobbered file elsewhere).
+    tmp = dst.with_name(f"{dst.name}.{uuid.uuid4().hex[:8]}.tmp_enc")
+    _remove_stale_temps(dst)
 
-    cmd = [ffmpeg_bin, "-i", str(src), "-map", "0:v:0", "-map", "0:a:0",
+    cmd = [ffmpeg_bin, "-i", _arg(src), "-map", "0:v:0", "-map", "0:a:0",
            "-c:v", "copy", "-c:a", "aac", "-b:a", bitrate, "-movflags", "+faststart",
-           "-progress", "pipe:1", "-nostats", "-f", "mp4", "-y", str(tmp)]
+           "-progress", "pipe:1", "-nostats", "-f", "mp4", "-y", _arg(tmp)]
     total_s = await probe_duration(src, ffprobe=ffprobe_bin)
     flags = getattr(subprocess, "BELOW_NORMAL_PRIORITY_CLASS", 0) if low_priority else 0
     proc = None

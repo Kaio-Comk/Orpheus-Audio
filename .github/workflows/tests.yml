@@ -1,7 +1,11 @@
 name: tests
 on: [push, pull_request]
+# Least privilege for the GITHUB_TOKEN: these jobs only read the code.
+permissions:
+  contents: read
 jobs:
   pytest:
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     strategy:
       matrix:

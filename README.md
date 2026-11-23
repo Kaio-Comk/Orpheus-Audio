@@ -3,7 +3,7 @@
 # 🔊 Orpheus-Audio
 ### High-Speed, Non-Blocking Async Video Audio Repair for Browsers & Chromecast
 
-[![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-blue.svg?logo=python&logoColor=white)](https://python.org)
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg?logo=python&logoColor=white)](https://python.org)
 [![AsyncIO](https://img.shields.io/badge/Architecture-100%25%20Non--Blocking%20AsyncIO-purple.svg)](https://docs.python.org/3/library/asyncio.html)
 [![FFmpeg](https://img.shields.io/badge/Engine-FFmpeg%20%7C%20Stream%20Copy-red.svg?logo=ffmpeg&logoColor=white)](https://ffmpeg.org)
 [![Video Quality](https://img.shields.io/badge/Video%20Quality-100%25%20Bit--for--Bit%20Lossless-success.svg)](https://github.com/Kaio-Comk/Orpheus-Audio)
@@ -12,7 +12,7 @@
 **Make videos play instantly in Chrome, Safari, Chromecast, and Telegram by transcoding *only the audio track*.**  
 *Video stream is copied bit-for-bit with zero compression loss in seconds instead of hours.*
 
-[The Problem](#-why-orpheus-audio) • [How It Works](#-how-it-works) • [Installation](#-installation) • [Quickstart](#-quickstart) • [Cancellation & Safety](#-cancellation--pipe-safety) • [Contributing](#-contributing)
+[The Problem](#-the-problem-silent-video-playback) • [How It Works](#-how-it-works) • [Installation](#-installation) • [Quickstart](#-quickstart) • [Cancellation & Safety](#-cancellation--pipe-safety) • [Contributing](CONTRIBUTING.md)
 
 </div>
 
@@ -113,7 +113,7 @@ A blocking `subprocess.run(["ffmpeg", ...])` freezes Python's event loop for the
 * **Drain Protection:** The stdout/stderr progress pipe is actively drained asynchronously, preventing the OS buffer from filling up and hanging the process.
 * **Graceful Task Cancellation:** If the awaiting `asyncio.Task` is cancelled or times out, the FFmpeg process tree is killed immediately (`SIGKILL` / `TerminateProcess`) and temporary files are cleaned up.
 * **Targeted Track Inspection:** Inspects specifically `stream:a:0` to guarantee that multi-track files with audio commentary don't fool the player.
-* **Integrate with Distributed Queues:** Pairs seamlessly with [**`pg-lease-queue`**](https://github.com/Kaio-Comk/pg-lease-queue) to run repairs as durable background jobs across server restarts.
+* **Integrate with Distributed Queues:** Pairs seamlessly with [**`pg-lease-queue`**](https://github.com/Kaio-Comk/Talos-Queue) to run repairs as durable background jobs across server restarts.
 
 ---
 

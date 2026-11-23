@@ -93,3 +93,53 @@ def test_cancelar_mata_o_ffmpeg_e_limpa_o_temporario(tmp_path):
 
     asyncio.run(go())
     assert not list(tmp_path.glob("*.tmp_enc")) and not (tmp_path / "long.fixed.mp4").exists()
+
+
+@needs_ffmpeg
+def test_dois_reparos_simultaneos_do_mesmo_arquivo_nao_disputam_o_temporario(tmp_path):
+    src = tmp_path / "in.mp4"
+    _make_clip(src, "ac3")
+
+    async def go():
+        return await asyncio.gather(
+            repair_audio(src, tmp_path / "a.mp4", ffmpeg=FFMPEG, ffprobe=FFPROBE),
+            repair_audio(src, tmp_path / "a.mp4", ffmpeg=FFMPEG, ffprobe=FFPROBE),
+            return_exceptions=True)
+
+    results = asyncio.run(go())
+    assert all(isinstance(r, Path) for r in results), results
+    assert asyncio.run(probe_codec(tmp_path / "a.mp4", "a:0", ffprobe=FFPROBE)) == "aac"
+    assert not list(tmp_path.glob("*.tmp_enc"))
+
+
+@needs_ffmpeg
+def test_caminho_relativo_comecando_com_hifen_nao_vira_opcao(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    _make_clip(tmp_path / "-y.mp4", "ac3")
+    src = Path("-y.mp4")
+    assert asyncio.run(probe_codec(src, "a:0", ffprobe=FFPROBE)) == "ac3"
+    out = asyncio.run(repair_audio(src, ffmpeg=FFMPEG, ffprobe=FFPROBE))
+    assert asyncio.run(probe_codec(out, "a:0", ffprobe=FFPROBE)) == "aac"
+
+
+@needs_ffmpeg
+def test_temporario_esquecido_por_processo_morto_e_limpo_so_quando_velho(tmp_path):
+    """A process killed hard leaves `<dst>.<id>.tmp_enc` behind. Leftovers older than a day are removed
+    on the next repair of the same dst; a recent one (maybe a repair still running) is kept."""
+    import time
+    src = tmp_path / "in.mp4"
+    _make_clip(src, "ac3")
+    dst = tmp_path / "out.mp4"
+    velho = tmp_path / "out.mp4.deadbeef.tmp_enc"
+    legado = tmp_path / "out.mp4.tmp_enc"                 # name used before 04/11/2026
+    recente = tmp_path / "out.mp4.cafecafe.tmp_enc"
+    outro = tmp_path / "other.mp4.deadbeef.tmp_enc"       # belongs to another dst: not touched
+    for f in (velho, legado, recente, outro):
+        f.write_bytes(b"x")
+    dois_dias = time.time() - 2 * 24 * 3600
+    for f in (velho, legado, outro):
+        os.utime(f, (dois_dias, dois_dias))
+    asyncio.run(repair_audio(src, dst, ffmpeg=FFMPEG, ffprobe=FFPROBE))
+    assert dst.is_file()
+    assert not velho.exists() and not legado.exists()
+    assert recente.exists() and outro.exists()
